@@ -3,39 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RockTech Pro Video Call & Chat</title>
+    <title>RockTechnology - Pro Video Call & File Share</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; }
-        .header { background: #333; padding: 10px; border-radius: 10px; text-align: center; margin-bottom: 10px; }
-        .main-container { display: flex; flex: 1; gap: 10px; overflow: hidden; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+        .header { background: #333; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 10px; font-size: 1.1em; }
+        
+        /* मुख्य कंटेनर: कंप्यूटर पर रो (Row) और मोबाइल पर कॉलम (Column) */
+        .main-container { display: flex; flex: 1; gap: 15px; overflow: hidden; flex-direction: row; }
         
         /* Video Section */
-        .video-section { flex: 2; display: flex; flex-direction: column; gap: 10px; }
+        .video-section { flex: 2; display: flex; flex-direction: column; gap: 10px; min-height: 40vh; }
         .video-wrapper { position: relative; background: #000; border-radius: 10px; overflow: hidden; flex: 1; display: flex; align-items: center; justify-content: center; }
-        video { width: 100%; height: 100%; object-fit: cover; }
-        #localVideo { width: 150px; height: 110px; position: absolute; top: 10px; right: 10px; border: 2px solid white; z-index: 10; border-radius: 8px; }
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); } /* मिरर इफ़ेक्ट */
+        #localVideo { width: 120px; height: 90px; position: absolute; top: 10px; right: 10px; border: 2px solid #007bff; z-index: 10; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
         
-        /* Chat Section */
-        .chat-section { flex: 1; background: #262626; border-radius: 10px; display: flex; flex-direction: column; padding: 10px; }
-        #chatBox { flex: 1; overflow-y: auto; border-bottom: 1px solid #444; margin-bottom: 10px; padding: 5px; font-size: 0.9em; text-align: left; }
-        .chat-input-area { display: flex; gap: 5px; }
-        input[type="text"] { flex: 1; padding: 8px; border-radius: 5px; border: none; }
+        /* Chat & File Section */
+        .chat-section { flex: 1; background: #262626; border-radius: 10px; display: flex; flex-direction: column; padding: 15px; min-height: 30vh; }
+        #chatBox { flex: 1; overflow-y: auto; border-bottom: 1px solid #444; margin-bottom: 10px; padding: 5px; font-size: 0.95em; text-align: left; background: #1e1e1e; border-radius: 5px; }
+        .chat-msg { margin-bottom: 8px; padding: 8px; border-radius: 5px; background: #333; word-wrap: break-word; }
+        .chat-input-area { display: flex; flex-direction: column; gap: 10px; }
+        .input-row { display: flex; gap: 5px; }
+        input[type="text"] { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #555; background: #333; color: white; }
+        input[type="file"] { font-size: 0.85em; color: #ccc; }
         
         /* Buttons */
-        .controls { display: flex; justify-content: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-        .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .controls { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn:hover { opacity: 0.8; }
         .btn-share { background: #007bff; color: white; }
         .btn-fs { background: #6c757d; color: white; }
         .btn-send { background: #28a745; color: white; }
         .btn-pip { background: #ffc107; color: black; }
+        .btn-file { background: #17a2b8; color: white; padding: 5px 10px; font-size: 0.9em; }
+
+        /* Mobile Layout (768px से छोटी स्क्रीन के लिए) */
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; overflow-y: auto; }
+            .video-section { flex: none; height: 50vh; }
+            .chat-section { flex: none; height: 40vh; }
+            body { height: auto; min-height: 100vh; }
+        }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <strong>RockTech प्रो कॉल</strong> | आईडी: <span id="myId">...</span>
-    <button class="btn btn-share" onclick="copyInviteLink()">लिंक भेजें</button>
+    <strong>RockTechnology - कम्‍यूनिकेशन पोर्टल</strong><br>
+    <span style="font-size: 0.85em; color: #aaa;">आपकी आईडी: <span id="myId" style="color: #fff;">...</span></span>
+    <button class="btn btn-share" style="padding: 5px 10px; margin-left: 10px; font-size: 0.85em;" onclick="copyInviteLink()">लिंक भेजें</button>
 </div>
 
 <div class="main-container">
@@ -46,15 +62,21 @@
         </div>
         <div class="controls">
             <button class="btn btn-fs" onclick="toggleFullScreen()">Full Screen</button>
-            <button class="btn btn-pip" onclick="togglePiP()">Picture-in-Picture</button>
+            <button class="btn btn-pip" onclick="togglePiP()">Background (PiP)</button>
         </div>
     </div>
 
     <div class="chat-section">
         <div id="chatBox"></div>
         <div class="chat-input-area">
-            <input type="text" id="msgInput" placeholder="संदेश लिखें...">
-            <button class="btn btn-send" onclick="sendMessage()">Send</button>
+            <div class="input-row">
+                <input type="text" id="msgInput" placeholder="यहाँ संदेश लिखें...">
+                <button class="btn btn-send" onclick="sendMessage()">भेजें</button>
+            </div>
+            <div class="input-row" style="align-items: center; justify-content: space-between; background: #333; padding: 5px; border-radius: 5px;">
+                <input type="file" id="fileInput">
+                <button class="btn btn-file" onclick="sendFile()">फाइल भेजें</button>
+            </div>
         </div>
     </div>
 </div>
@@ -64,19 +86,19 @@
     let localStream, currentConn;
     const chatBox = document.getElementById('chatBox');
 
-    // 1. कैमरा शुरू करें
+    // 1. कैमरा एक्सेस करें और ऑटो-कनेक्ट चेक करें
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
         localStream = stream;
         document.getElementById('localVideo').srcObject = stream;
         
         const urlParams = new URLSearchParams(window.location.search);
         const remoteId = urlParams.get('callId');
-        if (remoteId) setTimeout(() => connectToPeer(remoteId), 2000);
+        if (remoteId) setTimeout(() => connectToPeer(remoteId), 2500);
     });
 
     peer.on('open', id => document.getElementById('myId').innerText = id);
 
-    // 2. कॉल और चैट रिसीव करना
+    // 2. इनकमिंग कॉल और कनेक्शन रिसीव करना
     peer.on('call', call => {
         call.answer(localStream);
         call.on('stream', stream => document.getElementById('remoteVideo').srcObject = stream);
@@ -84,36 +106,63 @@
 
     peer.on('connection', conn => {
         currentConn = conn;
-        setupChat();
+        setupDataChannel();
     });
 
-    // 3. कनेक्ट करने का फंक्शन
+    // 3. कॉल करने का फंक्शन
     function connectToPeer(id) {
-        // वीडियो कॉल
         peer.call(id, localStream).on('stream', stream => {
             document.getElementById('remoteVideo').srcObject = stream;
         });
-        // डेटा/चैट कनेक्शन
         currentConn = peer.connect(id);
-        setupChat();
+        setupDataChannel();
     }
 
-    function setupChat() {
+    // 4. टेक्स्ट चैट और फाइल रिसीव करने का सेटअप
+    function setupDataChannel() {
         currentConn.on('data', data => {
-            chatBox.innerHTML += `<div><b>मित्र:</b> ${data}</div>`;
+            if (data.type === 'text') {
+                chatBox.innerHTML += `<div class="chat-msg"><b>क्लाइंट:</b> ${data.content}</div>`;
+            } else if (data.type === 'file') {
+                // फाइल प्राप्त करने पर उसे डाउनलोड लिंक में बदलें
+                const blob = new Blob([data.file]);
+                const url = URL.createObjectURL(blob);
+                chatBox.innerHTML += `<div class="chat-msg"><b>क्लाइंट:</b> 📎 <a href="${url}" download="${data.filename}" style="color: #4CAF50; text-decoration: none; font-weight: bold;">${data.filename} (डाउनलोड करें)</a></div>`;
+            }
+            chatBox.scrollTop = chatBox.scrollHeight; // चैट को नीचे स्क्रॉल करें
         });
     }
 
+    // 5. टेक्स्ट मेसेज भेजना
     function sendMessage() {
         const msg = document.getElementById('msgInput').value;
         if (currentConn && msg) {
-            currentConn.send(msg);
-            chatBox.innerHTML += `<div><b>मैं:</b> ${msg}</div>`;
+            currentConn.send({ type: 'text', content: msg });
+            chatBox.innerHTML += `<div class="chat-msg"><b>मैं:</b> ${msg}</div>`;
             document.getElementById('msgInput').value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+        } else if (!currentConn) {
+            alert("पहले कॉल कनेक्ट होने दें!");
         }
     }
 
-    // 4. स्पेशल फीचर्स (Full Screen & PiP)
+    // 6. फाइल (Documents/Images) भेजना
+    function sendFile() {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+        if (currentConn && file) {
+            currentConn.send({ type: 'file', file: file, filename: file.name });
+            chatBox.innerHTML += `<div class="chat-msg"><b>मैं:</b> 📎 <i>${file.name}</i> भेजा गया।</div>`;
+            fileInput.value = ''; // इनपुट क्लियर करें
+            chatBox.scrollTop = chatBox.scrollHeight;
+        } else if (!file) {
+            alert("कृपया पहले एक फाइल चुनें!");
+        } else {
+            alert("कॉल कनेक्ट नहीं है!");
+        }
+    }
+
+    // 7. वीडियो कंट्रोल्स (Full Screen & PiP)
     function toggleFullScreen() {
         const elem = document.getElementById('videoArea');
         if (!document.fullscreenElement) elem.requestFullscreen();
@@ -129,14 +178,15 @@
                 await document.exitPictureInPicture();
             }
         } catch (error) {
-            alert("आपका ब्राउज़र Picture-in-Picture सपोर्ट नहीं करता।");
+            alert("आपका ब्राउज़र PiP सपोर्ट नहीं करता।");
         }
     }
 
+    // 8. लिंक शेयर करना
     function copyInviteLink() {
         const url = window.location.origin + window.location.pathname + "?callId=" + document.getElementById('myId').innerText;
         navigator.clipboard.writeText(url);
-        alert("लिंक कॉपी हो गया!");
+        alert("कॉल लिंक कॉपी हो गया है! अब इसे WhatsApp या Email पर भेजें।");
     }
 </script>
 </body>
