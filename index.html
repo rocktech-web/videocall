@@ -3,99 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RockTech Auto-Connect Video Call</title>
+    <title>RockTech Pro Video Call & Chat</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #eceff1; padding: 20px; color: #333; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        video { width: 100%; border-radius: 12px; background: #263238; border: 3px solid #cfd8dc; transform: scaleX(-1); }
-        .status-box { background: #e3f2fd; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #bbdefb; }
-        .btn { padding: 12px 24px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; transition: 0.3s; margin: 5px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; }
+        .header { background: #333; padding: 10px; border-radius: 10px; text-align: center; margin-bottom: 10px; }
+        .main-container { display: flex; flex: 1; gap: 10px; overflow: hidden; }
+        
+        /* Video Section */
+        .video-section { flex: 2; display: flex; flex-direction: column; gap: 10px; }
+        .video-wrapper { position: relative; background: #000; border-radius: 10px; overflow: hidden; flex: 1; display: flex; align-items: center; justify-content: center; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        #localVideo { width: 150px; height: 110px; position: absolute; top: 10px; right: 10px; border: 2px solid white; z-index: 10; border-radius: 8px; }
+        
+        /* Chat Section */
+        .chat-section { flex: 1; background: #262626; border-radius: 10px; display: flex; flex-direction: column; padding: 10px; }
+        #chatBox { flex: 1; overflow-y: auto; border-bottom: 1px solid #444; margin-bottom: 10px; padding: 5px; font-size: 0.9em; text-align: left; }
+        .chat-input-area { display: flex; gap: 5px; }
+        input[type="text"] { flex: 1; padding: 8px; border-radius: 5px; border: none; }
+        
+        /* Buttons */
+        .controls { display: flex; justify-content: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-share { background: #007bff; color: white; }
-        .btn-share:hover { background: #0056b3; }
-        .btn-call { background: #28a745; color: white; }
-        #peerIdDisplay { font-size: 1.2em; color: #d32f2f; font-weight: bold; }
-        p { margin: 10px 0; }
+        .btn-fs { background: #6c757d; color: white; }
+        .btn-send { background: #28a745; color: white; }
+        .btn-pip { background: #ffc107; color: black; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>RockTech इंस्टेंट वीडियो कॉल</h2>
-    
-    <div class="status-box">
-        <p>आपकी आईडी: <span id="peerIdDisplay">तैयार हो रहा है...</span></p>
-        <button class="btn btn-share" onclick="copyInviteLink()">इनवाइट लिंक कॉपी करें</button>
-        <p id="copyStatus" style="color: green; font-size: 0.9em; display: none;">लिंक कॉपी हो गया! अब इसे भेजें।</p>
+<div class="header">
+    <strong>RockTech प्रो कॉल</strong> | आईडी: <span id="myId">...</span>
+    <button class="btn btn-share" onclick="copyInviteLink()">लिंक भेजें</button>
+</div>
+
+<div class="main-container">
+    <div class="video-section">
+        <div class="video-wrapper" id="videoArea">
+            <video id="localVideo" autoplay muted playsinline></video>
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+        <div class="controls">
+            <button class="btn btn-fs" onclick="toggleFullScreen()">Full Screen</button>
+            <button class="btn btn-pip" onclick="togglePiP()">Picture-in-Picture</button>
+        </div>
     </div>
 
-    <div id="callSection" style="display:none;">
-        <input type="hidden" id="remoteId">
-        <button class="btn btn-call" id="manualCallBtn" onclick="makeCall()">कॉल शुरू करें</button>
-    </div>
-
-    <div class="video-grid">
-        <div><p>मेरी वीडियो</p><video id="localVideo" autoplay muted playsinline></video></div>
-        <div><p>रिमोट वीडियो</p><video id="remoteVideo" autoplay playsinline></video></div>
+    <div class="chat-section">
+        <div id="chatBox"></div>
+        <div class="chat-input-area">
+            <input type="text" id="msgInput" placeholder="संदेश लिखें...">
+            <button class="btn btn-send" onclick="sendMessage()">Send</button>
+        </div>
     </div>
 </div>
 
 <script>
     const peer = new Peer();
-    let localStream;
-    let peerId;
+    let localStream, currentConn;
+    const chatBox = document.getElementById('chatBox');
 
-    // 1. कैमरा और माइक शुरू करें
+    // 1. कैमरा शुरू करें
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
         localStream = stream;
         document.getElementById('localVideo').srcObject = stream;
         
-        // चेक करें कि क्या URL में पहले से कोई ID है (ऑटो-कॉल के लिए)
         const urlParams = new URLSearchParams(window.location.search);
-        const remoteIdFromUrl = urlParams.get('callId');
-        if (remoteIdFromUrl) {
-            document.getElementById('remoteId').value = remoteIdFromUrl;
-            document.getElementById('callSection').style.display = 'block';
-            setTimeout(() => makeCall(), 2000); // 2 सेकंड का इंतज़ार ताकि Peer तैयार हो जाए
-        }
-    }).catch(err => alert("कृपया कैमरा अनुमति दें: " + err));
-
-    // 2. अपनी आईडी प्राप्त करें
-    peer.on('open', (id) => {
-        peerId = id;
-        document.getElementById('peerIdDisplay').innerText = id;
+        const remoteId = urlParams.get('callId');
+        if (remoteId) setTimeout(() => connectToPeer(remoteId), 2000);
     });
 
-    // 3. इनवाइट लिंक तैयार और कॉपी करें
-    function copyInviteLink() {
-        const url = window.location.origin + window.location.pathname + "?callId=" + peerId;
-        navigator.clipboard.writeText(url).then(() => {
-            const status = document.getElementById('copyStatus');
-            status.style.display = 'block';
-            setTimeout(() => status.style.display = 'none', 3000);
+    peer.on('open', id => document.getElementById('myId').innerText = id);
+
+    // 2. कॉल और चैट रिसीव करना
+    peer.on('call', call => {
+        call.answer(localStream);
+        call.on('stream', stream => document.getElementById('remoteVideo').srcObject = stream);
+    });
+
+    peer.on('connection', conn => {
+        currentConn = conn;
+        setupChat();
+    });
+
+    // 3. कनेक्ट करने का फंक्शन
+    function connectToPeer(id) {
+        // वीडियो कॉल
+        peer.call(id, localStream).on('stream', stream => {
+            document.getElementById('remoteVideo').srcObject = stream;
+        });
+        // डेटा/चैट कनेक्शन
+        currentConn = peer.connect(id);
+        setupChat();
+    }
+
+    function setupChat() {
+        currentConn.on('data', data => {
+            chatBox.innerHTML += `<div><b>मित्र:</b> ${data}</div>`;
         });
     }
 
-    // 4. आने वाली कॉल का जवाब दें
-    peer.on('call', (call) => {
-        call.answer(localStream);
-        call.on('stream', (remoteStream) => {
-            document.getElementById('remoteVideo').srcObject = remoteStream;
-        });
-    });
+    function sendMessage() {
+        const msg = document.getElementById('msgInput').value;
+        if (currentConn && msg) {
+            currentConn.send(msg);
+            chatBox.innerHTML += `<div><b>मैं:</b> ${msg}</div>`;
+            document.getElementById('msgInput').value = '';
+        }
+    }
 
-    // 5. कॉल करने का फंक्शन
-    function makeCall() {
-        const rId = document.getElementById('remoteId').value;
-        if (!rId) return;
-        
-        const call = peer.call(rId, localStream);
-        call.on('stream', (remoteStream) => {
-            document.getElementById('remoteVideo').srcObject = remoteStream;
-        });
+    // 4. स्पेशल फीचर्स (Full Screen & PiP)
+    function toggleFullScreen() {
+        const elem = document.getElementById('videoArea');
+        if (!document.fullscreenElement) elem.requestFullscreen();
+        else document.exitFullscreen();
+    }
+
+    async function togglePiP() {
+        try {
+            const remoteVideo = document.getElementById('remoteVideo');
+            if (remoteVideo !== document.pictureInPictureElement) {
+                await remoteVideo.requestPictureInPicture();
+            } else {
+                await document.exitPictureInPicture();
+            }
+        } catch (error) {
+            alert("आपका ब्राउज़र Picture-in-Picture सपोर्ट नहीं करता।");
+        }
+    }
+
+    function copyInviteLink() {
+        const url = window.location.origin + window.location.pathname + "?callId=" + document.getElementById('myId').innerText;
+        navigator.clipboard.writeText(url);
+        alert("लिंक कॉपी हो गया!");
     }
 </script>
-
 </body>
 </html>
