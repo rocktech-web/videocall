@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RockTech Auto-Connect Video Call</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #eceff1; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        video { width: 100%; border-radius: 12px; background: #263238; border: 3px solid #cfd8dc; transform: scaleX(-1); }
+        .status-box { background: #e3f2fd; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #bbdefb; }
+        .btn { padding: 12px 24px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; transition: 0.3s; margin: 5px; }
+        .btn-share { background: #007bff; color: white; }
+        .btn-share:hover { background: #0056b3; }
+        .btn-call { background: #28a745; color: white; }
+        #peerIdDisplay { font-size: 1.2em; color: #d32f2f; font-weight: bold; }
+        p { margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>RockTech इंस्टेंट वीडियो कॉल</h2>
+    
+    <div class="status-box">
+        <p>आपकी आईडी: <span id="peerIdDisplay">तैयार हो रहा है...</span></p>
+        <button class="btn btn-share" onclick="copyInviteLink()">इनवाइट लिंक कॉपी करें</button>
+        <p id="copyStatus" style="color: green; font-size: 0.9em; display: none;">लिंक कॉपी हो गया! अब इसे भेजें।</p>
+    </div>
+
+    <div id="callSection" style="display:none;">
+        <input type="hidden" id="remoteId">
+        <button class="btn btn-call" id="manualCallBtn" onclick="makeCall()">कॉल शुरू करें</button>
+    </div>
+
+    <div class="video-grid">
+        <div><p>मेरी वीडियो</p><video id="localVideo" autoplay muted playsinline></video></div>
+        <div><p>रिमोट वीडियो</p><video id="remoteVideo" autoplay playsinline></video></div>
+    </div>
+</div>
+
+<script>
+    const peer = new Peer();
+    let localStream;
+    let peerId;
+
+    // 1. कैमरा और माइक शुरू करें
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+        localStream = stream;
+        document.getElementById('localVideo').srcObject = stream;
+        
+        // चेक करें कि क्या URL में पहले से कोई ID है (ऑटो-कॉल के लिए)
+        const urlParams = new URLSearchParams(window.location.search);
+        const remoteIdFromUrl = urlParams.get('callId');
+        if (remoteIdFromUrl) {
+            document.getElementById('remoteId').value = remoteIdFromUrl;
+            document.getElementById('callSection').style.display = 'block';
+            setTimeout(() => makeCall(), 2000); // 2 सेकंड का इंतज़ार ताकि Peer तैयार हो जाए
+        }
+    }).catch(err => alert("कृपया कैमरा अनुमति दें: " + err));
+
+    // 2. अपनी आईडी प्राप्त करें
+    peer.on('open', (id) => {
+        peerId = id;
+        document.getElementById('peerIdDisplay').innerText = id;
+    });
+
+    // 3. इनवाइट लिंक तैयार और कॉपी करें
+    function copyInviteLink() {
+        const url = window.location.origin + window.location.pathname + "?callId=" + peerId;
+        navigator.clipboard.writeText(url).then(() => {
+            const status = document.getElementById('copyStatus');
+            status.style.display = 'block';
+            setTimeout(() => status.style.display = 'none', 3000);
+        });
+    }
+
+    // 4. आने वाली कॉल का जवाब दें
+    peer.on('call', (call) => {
+        call.answer(localStream);
+        call.on('stream', (remoteStream) => {
+            document.getElementById('remoteVideo').srcObject = remoteStream;
+        });
+    });
+
+    // 5. कॉल करने का फंक्शन
+    function makeCall() {
+        const rId = document.getElementById('remoteId').value;
+        if (!rId) return;
+        
+        const call = peer.call(rId, localStream);
+        call.on('stream', (remoteStream) => {
+            document.getElementById('remoteVideo').srcObject = remoteStream;
+        });
+    }
+</script>
+
+</body>
+</html>
