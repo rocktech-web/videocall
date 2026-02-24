@@ -3,32 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RockTech - Permanent ID App</title>
+    <title>RockTech - Diagnostic App</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
         
-        /* Setup Screen (पहली बार नंबर सेट करने के लिए) */
+        /* Debug Log Window (नया फीचर) */
+        #debugLog { background: #000; color: #0f0; font-family: monospace; font-size: 0.8em; padding: 10px; height: 100px; overflow-y: auto; border: 1px solid #333; margin-bottom: 10px; border-radius: 5px; }
+        
         #setupScreen { position: fixed; top:0; left:0; width:100%; height:100%; background: #111; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .setup-box { background: #262626; padding: 30px; border-radius: 10px; text-align: center; border: 2px solid #007bff; }
+        .setup-box { background: #262626; padding: 20px; border-radius: 10px; text-align: center; border: 2px solid #007bff; }
         .setup-box input { padding: 10px; font-size: 1.2em; text-align: center; width: 60%; margin-bottom: 15px; border-radius: 5px; }
 
-        /* Main App CSS */
         #appContent { display: none; flex-direction: column; height: 100%; }
         .header { background: #333; padding: 10px; border-radius: 10px; text-align: center; margin-bottom: 10px; }
         .main-container { display: flex; flex: 1; gap: 10px; flex-direction: column; }
-        .video-wrapper { position: relative; background: #000; border-radius: 10px; overflow: hidden; height: 45vh; display: flex; align-items: center; justify-content: center; }
+        .video-wrapper { position: relative; background: #222; border-radius: 10px; overflow: hidden; height: 40vh; display: flex; align-items: center; justify-content: center; }
         video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-        #localVideo { width: 100px; height: 130px; position: absolute; top: 10px; right: 10px; border: 2px solid #007bff; border-radius: 8px; z-index: 10; }
+        #localVideo { width: 100px; height: 130px; position: absolute; top: 10px; right: 10px; border: 2px solid #007bff; border-radius: 8px; z-index: 10; background: #000; }
         
         .controls { display: flex; justify-content: center; gap: 5px; margin: 10px 0; }
-        input[type="text"] { padding: 10px; border-radius: 5px; border: none; text-align: center; font-weight: bold; }
+        input[type="number"] { padding: 10px; border-radius: 5px; border: none; text-align: center; font-weight: bold; width: 120px; }
         .btn { padding: 10px 15px; border: none; border-radius: 5px; font-weight: bold; color: white; cursor: pointer; }
         .btn-call { background: #28a745; }
         .btn-end { background: #dc3545; display: none; }
         .btn-blue { background: #007bff; }
 
-        /* Incoming Call Modal */
         #incomingCallModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; }
         .modal-content { background: #262626; padding: 25px; border-radius: 15px; text-align: center; border: 2px solid #28a745; }
         .modal-content input { letter-spacing: 5px; font-size: 1.2em; text-align: center; margin-bottom: 15px; width: 60%; }
@@ -36,10 +36,12 @@
 </head>
 <body>
 
+<div id="debugLog">App Started...<br></div>
+
 <div id="setupScreen">
     <div class="setup-box">
         <h2 style="color: #007bff; margin-top:0;">RockTech Setup</h2>
-        <p>इस मोबाइल का स्थायी नंबर (Device ID) बनाएं<br><small style="color:#aaa;">(उदाहरण: 1001, 1002, आदि)</small></p>
+        <p>इस मोबाइल का स्थायी नंबर बनाएं</p>
         <input type="number" id="newDeviceId" placeholder="उदा: 1001">
         <button class="btn btn-blue" onclick="saveDeviceId()">सेव करें</button>
     </div>
@@ -47,9 +49,9 @@
 
 <div id="appContent">
     <div class="header">
-        <strong>RockTechnology</strong> | मेरा नंबर: <span id="myFixedNumberDisplay" style="color: #007bff; font-size: 1.2em; font-weight: bold;">...</span><br>
+        मेरा नंबर: <span id="myFixedNumberDisplay" style="color: #007bff; font-size: 1.2em; font-weight: bold;">...</span><br>
         <div class="controls">
-            <input type="number" id="targetNumber" placeholder="कॉल करने का नंबर (उदा: 1002)" style="width: 200px;">
+            <input type="number" id="targetNumber" placeholder="कॉल नंबर (1002)">
             <button class="btn btn-call" onclick="makeCall()">कॉल</button>
             <button id="endCallBtn" class="btn btn-end" onclick="endCall()">कट</button>
         </div>
@@ -60,58 +62,73 @@
             <video id="localVideo" autoplay muted playsinline></video>
             <video id="remoteVideo" autoplay playsinline></video>
         </div>
-        </div>
+    </div>
 </div>
 
 <div id="incomingCallModal">
     <div class="modal-content">
         <h1 style="margin:0;">📞</h1>
         <h3 style="color: #28a745;">इनकमिंग कॉल...</h3>
-        <p>उठाने के लिए PIN (1234) डालें:</p>
+        <p>उठाने के लिए PIN डालें:</p>
         <input type="password" id="pinInput" maxlength="4" placeholder="****">
         <br>
         <button class="btn btn-call" onclick="acceptCall()">उठाएं</button>
         <button class="btn btn-end" style="display:inline-block;" onclick="rejectCall()">काटें</button>
-        <p id="pinError" style="color: #ff4d4d; display: none;">गलत PIN!</p>
     </div>
 </div>
 
 <script>
-    const APP_PREFIX = "RockTech-App-"; // यह सुनिश्चित करेगा कि आपकी ID दुनिया में किसी और से न टकराए
-    const SECRET_PIN = "1234";
-    const ringtone = new Audio("https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg");
-    ringtone.loop = true;
+    // लॉगर फंक्शन: यह हर एक्शन को स्क्रीन पर छापेगा
+    const logBox = document.getElementById('debugLog');
+    function logMessage(msg) {
+        console.log(msg);
+        logBox.innerHTML += `> ${msg}<br>`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
 
+    const APP_PREFIX = "RockTech-App-"; 
+    const SECRET_PIN = "1234";
     let peer, localStream, currentCall;
 
-    // चेक करें कि क्या मोबाइल में पहले से नंबर सेव है
     window.onload = function() {
+        logMessage("Checking saved number...");
         const savedNumber = localStorage.getItem('rocktech_device_number');
         if (savedNumber) {
+            logMessage(`Saved number found: ${savedNumber}`);
             document.getElementById('setupScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'flex';
             document.getElementById('myFixedNumberDisplay').innerText = savedNumber;
             startWebRTC(savedNumber);
         } else {
+            logMessage("No number found. Show setup screen.");
             document.getElementById('setupScreen').style.display = 'flex';
         }
     }
 
-    // नया नंबर सेव करने का फंक्शन
     function saveDeviceId() {
         const num = document.getElementById('newDeviceId').value;
-        if(num.length < 2) return alert("कृपया कम से कम 2 अंकों का नंबर डालें!");
-        
+        if(num.length < 2) return alert("2 अंकों का नंबर डालें!");
         localStorage.setItem('rocktech_device_number', num);
+        
         document.getElementById('setupScreen').style.display = 'none';
         document.getElementById('appContent').style.display = 'flex';
         document.getElementById('myFixedNumberDisplay').innerText = num;
+        logMessage(`New number saved: ${num}`);
         startWebRTC(num);
     }
 
-    // WebRTC और STUN Server शुरू करना
     function startWebRTC(myNumber) {
-        // स्थायी ID और STUN सर्वर के साथ PeerJS शुरू करें (नेटवर्क समस्या ठीक करने के लिए)
+        logMessage("Starting Camera...");
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+            localStream = stream;
+            document.getElementById('localVideo').srcObject = stream;
+            logMessage("<span style='color:lime'>Camera & Mic OK!</span>");
+        }).catch(err => {
+            logMessage(`<span style='color:red'>CAMERA ERROR: ${err.name} - ${err.message}</span>`);
+            alert("कैमरा चालू नहीं हो सका: " + err.message);
+        });
+
+        logMessage("Connecting to Signaling Server...");
         peer = new Peer(APP_PREFIX + myNumber, {
             config: {
                 'iceServers': [
@@ -121,57 +138,86 @@
             }
         });
 
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
-            localStream = stream;
-            document.getElementById('localVideo').srcObject = stream;
-        }).catch(err => alert("कैमरा चालू नहीं हो सका!"));
+        peer.on('open', id => {
+            logMessage(`<span style='color:lime'>Connected to Server! ID: ${id}</span>`);
+        });
+
+        // सबसे महत्वपूर्ण: यह हमें बताएगा कि P2P में क्या फेल हो रहा है
+        peer.on('error', err => {
+            logMessage(`<span style='color:red'>PEER ERROR: ${err.type}</span>`);
+            alert("Connection Error: " + err.type);
+        });
 
         peer.on('call', call => {
+            logMessage(`Incoming call from: ${call.peer}`);
             currentCall = call;
             document.getElementById('incomingCallModal').style.display = 'flex';
-            ringtone.play().catch(e=>console.log(e));
         });
     }
 
-    // कॉल उठाना
+    function makeCall() {
+        const targetNumber = document.getElementById('targetNumber').value;
+        if (!targetNumber) return alert("नंबर डालें!");
+
+        if (!localStream) {
+            logMessage("<span style='color:red'>Cannot call: Camera not ready!</span>");
+            alert("कैमरा चालू होने का इंतज़ार करें!");
+            return;
+        }
+
+        const targetFullId = APP_PREFIX + targetNumber; 
+        logMessage(`Calling ID: ${targetFullId} ...`);
+        
+        currentCall = peer.call(targetFullId, localStream);
+        
+        if (!currentCall) {
+             logMessage("<span style='color:red'>Call object creation failed!</span>");
+             return;
+        }
+
+        document.getElementById('endCallBtn').style.display = 'inline-block';
+        
+        currentCall.on('stream', stream => {
+            logMessage("<span style='color:lime'>Call Connected! Received Video.</span>");
+            document.getElementById('remoteVideo').srcObject = stream;
+        });
+
+        currentCall.on('close', () => {
+            logMessage("Call Closed by remote.");
+            resetUI();
+        });
+
+        currentCall.on('error', err => {
+            logMessage(`<span style='color:red'>CALL ERROR: ${err}</span>`);
+        });
+    }
+
     function acceptCall() {
         if (document.getElementById('pinInput').value === SECRET_PIN) {
-            ringtone.pause(); ringtone.currentTime = 0;
+            logMessage("PIN Accepted. Answering call...");
             document.getElementById('incomingCallModal').style.display = 'none';
             document.getElementById('endCallBtn').style.display = 'inline-block';
             
             currentCall.answer(localStream);
-            currentCall.on('stream', stream => document.getElementById('remoteVideo').srcObject = stream);
+            currentCall.on('stream', stream => {
+                logMessage("<span style='color:lime'>Call Connected!</span>");
+                document.getElementById('remoteVideo').srcObject = stream;
+            });
             currentCall.on('close', resetUI);
         } else {
-            document.getElementById('pinError').style.display = 'block';
+            logMessage("<span style='color:yellow'>Wrong PIN entered.</span>");
+            alert("गलत PIN!");
         }
     }
 
-    // कॉल काटना
     function rejectCall() {
-        ringtone.pause(); ringtone.currentTime = 0;
+        logMessage("Call Rejected.");
         if(currentCall) currentCall.close();
         document.getElementById('incomingCallModal').style.display = 'none';
-        document.getElementById('pinInput').value = '';
-    }
-
-    // कॉल लगाना
-    function makeCall() {
-        const targetNumber = document.getElementById('targetNumber').value;
-        if (!targetNumber) return alert("कॉल करने का नंबर डालें!");
-
-        // हम उसी Prefix का इस्तेमाल करके कॉल लगाएंगे
-        const targetFullId = APP_PREFIX + targetNumber; 
-        
-        currentCall = peer.call(targetFullId, localStream);
-        document.getElementById('endCallBtn').style.display = 'inline-block';
-        
-        currentCall.on('stream', stream => document.getElementById('remoteVideo').srcObject = stream);
-        currentCall.on('close', resetUI);
     }
 
     function endCall() {
+        logMessage("Ending call...");
         if (currentCall) currentCall.close();
         resetUI();
     }
@@ -179,7 +225,6 @@
     function resetUI() {
         document.getElementById('remoteVideo').srcObject = null;
         document.getElementById('endCallBtn').style.display = 'none';
-        document.getElementById('pinInput').value = '';
     }
 </script>
 </body>
