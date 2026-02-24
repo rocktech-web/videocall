@@ -3,63 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RockTechnology Pro App</title>
+    <title>RockTech Portal - Pro Audio</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
+        /* (CSS पहले जैसी ही है, जगह बचाने के लिए मुख्य हिस्से रखे हैं) */
         body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
-        
-        /* Setup Screen */
         #setupScreen { position: fixed; top:0; left:0; width:100%; height:100%; background: #111; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .setup-box { background: #262626; padding: 25px; border-radius: 10px; text-align: center; border: 2px solid #007bff; box-shadow: 0 0 15px rgba(0,123,255,0.3); }
+        .setup-box { background: #262626; padding: 25px; border-radius: 10px; text-align: center; border: 2px solid #007bff; }
         .setup-box input { padding: 10px; font-size: 1.2em; text-align: center; width: 60%; margin-bottom: 15px; border-radius: 5px; }
-
-        /* Main Layout */
         #appContent { display: none; flex-direction: column; height: 100%; }
         .header { background: #333; padding: 10px; border-radius: 10px; text-align: center; margin-bottom: 10px; }
         .main-container { display: flex; flex: 1; gap: 10px; flex-direction: column; overflow: hidden; }
-        
-        /* Video Area */
         .video-section { display: flex; flex-direction: column; gap: 5px; height: 45vh; }
         .video-wrapper { position: relative; background: #000; border-radius: 10px; overflow: hidden; flex: 1; display: flex; align-items: center; justify-content: center; border: 1px solid #444; }
         video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
         #localVideo { width: 100px; height: 130px; position: absolute; top: 10px; right: 10px; border: 2px solid #007bff; z-index: 10; border-radius: 8px; background: #222; }
-        
-        /* Chat & File Area */
-        .chat-section { flex: 1; background: #262626; border-radius: 10px; display: flex; flex-direction: column; padding: 10px; min-height: 30vh; }
-        #chatBox { flex: 1; overflow-y: auto; border-bottom: 1px solid #444; margin-bottom: 10px; padding: 5px; font-size: 0.9em; text-align: left; background: #1e1e1e; border-radius: 5px; }
+        .chat-section { flex: 1; background: #262626; border-radius: 10px; display: flex; flex-direction: column; padding: 10px; min-height: 25vh; }
+        #chatBox { flex: 1; overflow-y: auto; border-bottom: 1px solid #444; margin-bottom: 5px; padding: 5px; font-size: 0.9em; text-align: left; background: #1e1e1e; border-radius: 5px; }
         .chat-msg { margin-bottom: 8px; padding: 8px; border-radius: 5px; background: #333; word-wrap: break-word; }
+        .system-msg { color: #ffc107; font-size: 0.85em; text-align: center; margin-bottom: 8px; }
         .input-row { display: flex; gap: 5px; margin-bottom: 5px; align-items: center; }
         input[type="text"] { flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #555; background: #333; color: white; }
-        
-        /* Controls & Buttons */
         .controls { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
-        input[type="number"] { padding: 8px; border-radius: 5px; border: none; text-align: center; font-weight: bold; width: 100px; }
-        .btn { padding: 8px 15px; border: none; border-radius: 5px; font-weight: bold; color: white; cursor: pointer; transition: 0.3s; }
+        input[type="number"] { padding: 8px; border-radius: 5px; border: none; text-align: center; font-weight: bold; width: 90px; }
+        .btn { padding: 8px 12px; border: none; border-radius: 5px; font-weight: bold; color: white; cursor: pointer; transition: 0.3s; }
         .btn-call { background: #28a745; }
         .btn-end { background: #dc3545; display: none; }
         .btn-blue { background: #007bff; }
         .btn-tool { background: #6c757d; font-size: 0.85em; }
         .btn-file { background: #17a2b8; font-size: 0.85em; padding: 5px 10px; }
+        
+        /* नया ऑडियो सेलेक्टर CSS */
+        .audio-selector { background: #444; color: white; border: 1px solid #666; padding: 5px; border-radius: 5px; font-size: 0.85em; }
 
-        /* Incoming Call Modal */
         #incomingCallModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; }
         .modal-content { background: #262626; padding: 25px; border-radius: 15px; text-align: center; border: 2px solid #28a745; }
         .modal-content input { letter-spacing: 5px; font-size: 1.2em; text-align: center; margin-bottom: 15px; width: 60%; }
         
-        /* Desktop layout */
-        @media (min-width: 768px) {
-            .main-container { flex-direction: row; }
-            .video-section { flex: 2; height: auto; }
-            .chat-section { flex: 1; height: auto; }
-        }
+        #toastMsg { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 20px; padding: 10px; position: fixed; z-index: 3000; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 0.9em; box-shadow: 0 4px 8px rgba(0,0,0,0.3); transition: opacity 0.3s, visibility 0.3s; opacity: 0; }
+        #toastMsg.show { visibility: visible; opacity: 1; }
+        @media (min-width: 768px) { .main-container { flex-direction: row; } .video-section { flex: 2; height: auto; } .chat-section { flex: 1; height: auto; } }
     </style>
 </head>
 <body>
 
+<div id="toastMsg">बाहर जाने के लिए दोबारा बैक दबाएं</div>
+
 <div id="setupScreen">
     <div class="setup-box">
         <h2 style="color: #007bff; margin-top:0;">RockTech Setup</h2>
-        <p>इस डिवाइस का स्थायी नंबर बनाएं<br><small>(उदा: 1001, 1002)</small></p>
+        <p>इस डिवाइस का स्थायी नंबर बनाएं</p>
         <input type="number" id="newDeviceId" placeholder="1001">
         <br>
         <button class="btn btn-blue" onclick="saveDeviceId()">नंबर सेव करें</button>
@@ -68,11 +61,11 @@
 
 <div id="appContent">
     <div class="header">
-        <strong>RockTechnology App</strong> | मेरा नंबर: <span id="myFixedNumberDisplay" style="color: #007bff; font-size: 1.2em; font-weight: bold;">...</span><br>
+        <strong>RockTechnology Portal</strong> | मेरा नंबर: <span id="myFixedNumberDisplay" style="color: #007bff; font-weight: bold;">...</span><br>
         <div class="controls">
             <input type="number" id="targetNumber" placeholder="डायल नंबर">
-            <button class="btn btn-call" onclick="makeCall()">कॉल करें</button>
-            <button id="endCallBtn" class="btn btn-end" onclick="endCall()">कॉल कट करें</button>
+            <button class="btn btn-call" onclick="makeCall()">कॉल</button>
+            <button id="endCallBtn" class="btn btn-end" onclick="endCallInitiator()">कट</button>
         </div>
     </div>
 
@@ -83,8 +76,12 @@
                 <video id="remoteVideo" autoplay playsinline></video>
             </div>
             <div class="controls">
-                <button class="btn btn-tool" onclick="toggleFullScreen()">Full Screen</button>
-                <button class="btn btn-tool" onclick="togglePiP()">Background (PiP)</button>
+                <button id="fsBtn" class="btn btn-tool" onclick="toggleFullScreen()">Full Screen</button>
+                <button class="btn btn-tool" onclick="togglePiP()">PiP</button>
+                
+                <select id="audioOutputSelect" class="audio-selector" onchange="changeAudioDestination()">
+                    <option value="">Default Speaker</option>
+                </select>
             </div>
         </div>
 
@@ -96,7 +93,7 @@
             </div>
             <div class="input-row" style="background: #333; padding: 5px; border-radius: 5px;">
                 <input type="file" id="fileInput" style="font-size: 0.8em; color: #ccc; width: 70%;">
-                <button class="btn btn-file" onclick="sendFile()">फाइल भेजें</button>
+                <button class="btn btn-file" onclick="sendFile()">भेजें</button>
             </div>
         </div>
     </div>
@@ -116,7 +113,28 @@
 </div>
 
 <script>
-    const APP_PREFIX = "RockTech-App-V1-"; 
+    // Double Back Press
+    let backPressedOnce = false;
+    window.history.pushState({ page: 1 }, "", "");
+    window.addEventListener('popstate', function(event) {
+        if (!backPressedOnce) {
+            backPressedOnce = true;
+            showToast("ऐप से बाहर जाने के लिए दोबारा बैक दबाएं");
+            window.history.pushState({ page: 1 }, "", ""); 
+            setTimeout(() => { backPressedOnce = false; }, 2000); 
+        } else {
+            window.history.back(); 
+        }
+    });
+
+    function showToast(msg) {
+        const toast = document.getElementById("toastMsg");
+        toast.innerText = msg;
+        toast.classList.add("show");
+        setTimeout(() => { toast.classList.remove("show"); }, 2000);
+    }
+
+    const APP_PREFIX = "RockTech-App-V3-"; 
     const SECRET_PIN = "1234";
     const ringtone = new Audio("https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg");
     ringtone.loop = true;
@@ -138,7 +156,7 @@
 
     function saveDeviceId() {
         const num = document.getElementById('newDeviceId').value;
-        if(num.length < 2) return alert("कृपया सही नंबर डालें!");
+        if(num.length < 2) return alert("नंबर डालें!");
         localStorage.setItem('rocktech_device_number', num);
         
         document.getElementById('setupScreen').style.display = 'none';
@@ -148,49 +166,86 @@
     }
 
     function startWebRTC(myNumber) {
-        // STUN Server Configuration (फायरवॉल बायपास करने के लिए)
         peer = new Peer(APP_PREFIX + myNumber, {
-            config: {
-                'iceServers': [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
-                ]
-            }
+            config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] }
         });
 
-        // कैमरा चालू करना
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+        const mediaConstraints = {
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } }, 
+            audio: { echoCancellation: true, noiseSuppression: true }    
+        };
+
+        navigator.mediaDevices.getUserMedia(mediaConstraints).then(stream => {
             localStream = stream;
             document.getElementById('localVideo').srcObject = stream;
+            
+            // कैमरा एक्सेस मिलने के बाद ऑडियो डिवाइस (स्पीकर/ब्लूटूथ) की लिस्ट निकालें
+            getAudioOutputDevices();
+
         }).catch(err => alert("कैमरा एक्सेस एरर: " + err.message));
 
-        // कॉल आने पर
         peer.on('call', call => {
             currentCall = call;
             document.getElementById('incomingCallModal').style.display = 'flex';
             ringtone.play().catch(e => console.log(e));
         });
 
-        // चैट/फाइल कनेक्शन आने पर
         peer.on('connection', conn => {
             currentConn = conn;
             setupDataChannel();
         });
     }
 
+    // --- नया फीचर: Audio Devices ढूँढना ---
+    async function getAudioOutputDevices() {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
+            const select = document.getElementById('audioOutputSelect');
+            
+            // अगर मोबाइल ब्राउज़र इसे सपोर्ट करता है, तो लिस्ट अपडेट करें
+            if (audioOutputs.length > 0) {
+                select.innerHTML = '';
+                audioOutputs.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Speaker ${select.length + 1}`;
+                    select.appendChild(option);
+                });
+            }
+        } catch (e) {
+            console.log("Audio device enumeration not supported.", e);
+        }
+    }
+
+    // --- नया फीचर: आवाज़ की दिशा बदलना (Change Sink) ---
+    function changeAudioDestination() {
+        const video = document.getElementById('remoteVideo');
+        const sinkId = document.getElementById('audioOutputSelect').value;
+        
+        if (typeof video.sinkId !== 'undefined') {
+            video.setSinkId(sinkId)
+                .then(() => showToast("साउंड आउटपुट बदल गया"))
+                .catch(error => {
+                    console.error(error);
+                    showToast("आपका फोन यह बदलाव सपोर्ट नहीं करता");
+                });
+        } else {
+            showToast("आपका डिवाइस ऑडियो स्विच सपोर्ट नहीं करता।");
+        }
+    }
+
     function makeCall() {
         const targetNumber = document.getElementById('targetNumber').value;
-        if (!targetNumber) return alert("डायल करने के लिए नंबर डालें!");
+        if (!targetNumber) return alert("नंबर डालें!");
         const targetFullId = APP_PREFIX + targetNumber; 
 
-        // 1. वीडियो कॉल कनेक्ट करें
         currentCall = peer.call(targetFullId, localStream);
         document.getElementById('endCallBtn').style.display = 'inline-block';
         
         currentCall.on('stream', stream => playRemoteVideo(stream));
         currentCall.on('close', resetUI);
 
-        // 2. चैट और फाइल शेयरिंग कनेक्ट करें
         currentConn = peer.connect(targetFullId);
         setupDataChannel();
     }
@@ -216,36 +271,41 @@
         document.getElementById('incomingCallModal').style.display = 'none';
     }
 
-    function endCall() {
-        if (currentCall) currentCall.close();
-        if (currentConn) currentConn.close();
+    function endCallInitiator() {
+        if (currentConn && currentConn.open) currentConn.send({ type: 'system', command: 'end_call' });
+        executeEndCall();
+    }
+
+    function executeEndCall() {
+        if (currentCall) { currentCall.close(); currentCall = null; }
+        if (currentConn) { currentConn.close(); currentConn = null; }
         resetUI();
     }
 
-    // वीडियो को सुरक्षित रूप से प्ले करने का फंक्शन (Audio/Video Issue Fix)
     function playRemoteVideo(stream) {
         const remoteVid = document.getElementById('remoteVideo');
         remoteVid.srcObject = stream;
-        remoteVid.onloadedmetadata = function() {
-            remoteVid.play().catch(e => console.log("Play error:", e));
-        };
+        remoteVid.onloadedmetadata = function() { remoteVid.play().catch(e=>console.log(e)); };
     }
 
-    // चैट और फाइल रिसीव करना
     function setupDataChannel() {
         currentConn.on('data', data => {
+            if (data.type === 'system' && data.command === 'end_call') {
+                chatBox.innerHTML += `<div class="system-msg">सामने वाले ने कॉल समाप्त कर दी है।</div>`;
+                executeEndCall();
+                return;
+            }
             if (data.type === 'text') {
                 chatBox.innerHTML += `<div class="chat-msg"><b>क्लाइंट:</b> ${data.content}</div>`;
             } else if (data.type === 'file') {
                 const blob = new Blob([data.file]);
                 const url = URL.createObjectURL(blob);
-                chatBox.innerHTML += `<div class="chat-msg"><b>क्लाइंट:</b> 📎 <a href="${url}" download="${data.filename}" style="color: #4CAF50;">${data.filename} (डाउनलोड)</a></div>`;
+                chatBox.innerHTML += `<div class="chat-msg"><b>क्लाइंट:</b> 📎 <a href="${url}" download="${data.filename}" style="color: #4CAF50;">${data.filename}</a></div>`;
             }
             chatBox.scrollTop = chatBox.scrollHeight;
         });
     }
 
-    // मैसेज भेजना
     function sendMessage() {
         const msg = document.getElementById('msgInput').value;
         if (currentConn && msg) {
@@ -253,12 +313,9 @@
             chatBox.innerHTML += `<div class="chat-msg"><b>मैं:</b> ${msg}</div>`;
             document.getElementById('msgInput').value = '';
             chatBox.scrollTop = chatBox.scrollHeight;
-        } else if (!currentConn) {
-            alert("पहले कॉल कनेक्ट करें!");
         }
     }
 
-    // फाइल भेजना
     function sendFile() {
         const fileInput = document.getElementById('fileInput');
         const file = fileInput.files[0];
@@ -267,12 +324,9 @@
             chatBox.innerHTML += `<div class="chat-msg"><b>मैं:</b> 📎 <i>${file.name}</i> भेजा गया।</div>`;
             fileInput.value = '';
             chatBox.scrollTop = chatBox.scrollHeight;
-        } else if (!file) {
-            alert("कृपया फाइल चुनें!");
         }
     }
 
-    // Tools
     function stopRingtone() { ringtone.pause(); ringtone.currentTime = 0; }
     
     function resetUI() {
@@ -283,16 +337,27 @@
 
     function toggleFullScreen() {
         const elem = document.getElementById('videoArea');
-        if (!document.fullscreenElement) elem.requestFullscreen();
-        else document.exitFullscreen();
+        const btn = document.getElementById('fsBtn');
+        if (!document.fullscreenElement) {
+            elem.requestFullscreen().catch(err => console.log(err));
+        } else { document.exitFullscreen(); }
     }
+
+    document.addEventListener('fullscreenchange', () => {
+        const btn = document.getElementById('fsBtn');
+        if (!document.fullscreenElement) {
+            btn.innerText = "Full Screen"; btn.style.background = "#6c757d";
+        } else {
+            btn.innerText = "Exit Full Screen"; btn.style.background = "#dc3545"; 
+        }
+    });
 
     async function togglePiP() {
         try {
             const video = document.getElementById('remoteVideo');
             if (video !== document.pictureInPictureElement) await video.requestPictureInPicture();
             else await document.exitPictureInPicture();
-        } catch (e) { alert("PiP सपोर्ट नहीं है या वीडियो नहीं चल रहा!"); }
+        } catch (e) { alert("PiP सपोर्ट नहीं है!"); }
     }
 </script>
 </body>
